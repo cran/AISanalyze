@@ -1,0 +1,100 @@
+#' Interpolate AIS positions
+#'
+#' Interpolate AIS positions at regular time intervals
+#'
+#' @param ais_data AIS data frame containing `timestamp`, `lon`, `lat`, and
+#'   `mmsi`. `timestamp` must be Unix time (seconds since 1970-01-01), while
+#'   `lon` and `lat` must be numeric.
+#' @param maximum_gap_seconds threshold of time interval between AIS positions
+#' (seconds) above which the track is interpolated.
+#' @param nb_cores Number of CPU cores used.
+#' @param outfile File used to save logs.
+#'
+#' @return The interpolated AIS data with an additional column:
+#' \itemize{
+#' \item `interpolated`: Whether the position was interpolated.
+#' }
+#' @keywords internal
+#' @noRd
+#'
+method_interpolation_max_time <- function(ais_data,
+                                           maximum_gap_seconds,
+                                           nb_cores = 1,
+                                           outfile = tempfile()) {
+
+  ais_data <- ais_data %>%
+    dplyr::mutate(id_ais_data_initial = 1:dplyr::n())
+
+  to_interp <- ais_data %>%
+    dplyr::group_by(mmsi) %>%
+    dplyr::mutate(idd = 1:dplyr::n()) %>%
+    dplyr::ungroup() %>%
+    dplyr::filter(idd != 1)  %>%
+    dplyr::select(-idd)%>%
+    dplyr::filter(time_travelled > maximum_gap_seconds)
+
+  if (nrow(to_interp) > 0) {
+    prec <- ais_data[to_interp$id_ais_data_initial - 1, ]
+
+    interp <- to_interp %>%
+      dplyr::mutate(ttimestamp = prec$timestamp,
+                    tmmsi = prec$mmsi,
+                    tlon = prec$lon,
+                    tlat = prec$lat) %>%
+      dplyr::filter(mmsi == tmmsi)
+    ###
+
+    assign_mmsi_to_core <- interp %>%
+      dplyr::group_by(mmsi) %>%
+      dplyr::summarise(n = dplyr::n()) %>%
+      dplyr::ungroup() %>%
+      dplyr::arrange(-n) %>%
+      dplyr::mutate(core = rep(1:nb_cores, ceiling(dplyr::n() / nb_cores))[1:dplyr::n()]) %>%
+      dplyr::group_by(core) %>%
+      dplyr::mutate(split_datasets = floor(cumsum(n) / 50000)) %>%
+      dplyr::ungroup() %>%
+      dplyr::mutate(core = paste(core, split_datasets))
+
+    interp <- purrr::map(unique(assign_mmsi_to_core$core), function(co) {
+      interp %>%
+        dplyr::filter(mmsi %in% (assign_mmsi_to_core %>%
+                                   dplyr::filter(core == co) %>%
+                                   dplyr::pull(mmsi)))
+    })
+
+    cl <- parallel::makeCluster(nb_cores, outfile = outfile)
+    doParallel::registerDoParallel(cl)
+
+    out <- foreach::foreach(ais_data_core = interp,
+                            # .export = c("maximum_gap_seconds"),
+                            .noexport = c("assign_mmsi_to_core", "ais_data", "interp"),
+                            .packages = c("dplyr")
+    ) %dopar% {
+      ais_data_core %>%
+        dplyr::group_by(id_ais_data_initial) %>%
+        dplyr::reframe(timestamp = seq(from = ttimestamp,
+                                       to = timestamp,
+                                       length = 1 + ceiling((timestamp - ttimestamp) / maximum_gap_seconds))[-1],
+                       speed_kmh = unique(speed_kmh),
+                       interpolated = c(rep(TRUE, length(timestamp) - 1), FALSE),
+                       time_travelled = rep(timestamp[2] - timestamp[1], length(timestamp)),
+                       distance_travelled = 1000 * speed_kmh * (time_travelled / (60*60)),
+                       lon = tlon + (lon - tlon) * cumsum(time_travelled / sum(time_travelled, na.rm = TRUE)),
+                       lat = tlat + (lat - tlat) * cumsum(time_travelled / sum(time_travelled, na.rm = TRUE))
+        )
+    }
+
+    parallel::stopCluster(cl)
+
+    interp <- to_interp %>%
+      dplyr::select(!c("timestamp", "speed_kmh", "time_travelled", "distance_travelled", "lon", "lat")) %>%
+      dplyr::left_join(do.call("rbind", out), by = "id_ais_data_initial")
+  } else {
+    interp <- NULL
+  }
+
+  return(ais_data %>%
+           dplyr::filter(!(id_ais_data_initial %in% unique(interp$id_ais_data_initial))) %>%
+           dplyr::mutate(interpolated = FALSE) %>%
+           rbind(interp))
+}

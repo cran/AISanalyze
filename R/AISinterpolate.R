@@ -1,0 +1,162 @@
+#' Interpolate AIS positions
+#'
+#' Interpolates vessel positions either: (depending on `type_interpolation`)
+#'   \itemize{
+#'   \item to ensure time intervals do not exceed a specified maximum
+#'   (`= maximum_gap_seconds`).
+#'   \item at user-defined timestamps (`= exact_timestamp`). Interpolation
+#'   can optionally be restricted to specific regions to reduce computation
+#'   time with `locations_of_interest` and `radius` arguments.
+#'   }
+#'
+#' @param ais_data AIS data frame containing `timestamp`, `lon`, `lat`, and
+#'   `mmsi`. `timestamp` must be Unix time (seconds since 1970-01-01), while
+#'   `lon` and `lat` must be numeric.
+#' @param type_interpolation Interpolation mode: `"maximum_gap_seconds"` or
+#'   `"exact_timestamp"`.
+#' @param maximum_gap_seconds used when
+#'   `type_interpolation = "maximum_gap_seconds"`: threshold above which
+#'   AIS signals are interpolated.
+#' @param exact_timestamp List used when
+#'   `type_interpolation = "exact_timestamp"`, containing:
+#'   \itemize{
+#'   \item `timestamp_to_interpolate`
+#'   \item `locations_of_interest`: (optional) data frame with `lon` and `lat`
+#'     columns corresponding to each `timestamp_to_interpolate`
+#'   \item `radius`: (optional) a search radius (m) around target locations
+#'   }
+#' @param crs_meters CRS (in metres) used for distance calculations. Defaults
+#'   to EPSG:3035.
+#' @param nb_cores Number of CPU cores used.
+#' @param outfile File used to save logs.
+#'
+#' @return The interpolated AIS data with an additional column:
+#' \itemize{
+#' \item `interpolated`: Whether the position was interpolated.
+#' }
+#'
+#' @examples
+#' data("ais")
+#' data("point_to_extract")
+#'
+#' # use only a sample for the example:
+#' ais <- ais[20000:30000, ]
+#'
+#' # Define the Unix time (seconds since 1970-01-01)
+#' point_to_extract$timestamp <- as.numeric(lubridate::ymd_hm(point_to_extract$datetime))
+#' ais$timestamp <- as.numeric(lubridate::ymd_hms(ais$datetime))
+#'
+#' # calculate the travelled distance, time, and speed:
+#' ais <- AIStravel(ais_data = ais)
+#'
+#' # Interpolate all AIS signals further than > 120 seconds:
+#' out <- AISinterpolate(ais_data = ais,
+#'                       type_interpolation = "maximum_gap_seconds",
+#'                       maximum_gap_seconds = 120, ## Alternatively, you can
+#'                       ## interpolate at target timestamps with:
+#'                       # exact_timestamp = list(
+#'                       #      timestamp_to_interpolate = point_to_extract$timestamp,
+#'                       #      locations_of_interest = data.frame(lon = point_to_extract$lon,
+#'                       #                                         lat = point_to_extract$lat),
+#'                       #      radius = 200000),
+#'                       crs_meters = 3035)
+#' @export
+
+AISinterpolate <- function(ais_data,
+                           type_interpolation,
+                           maximum_gap_seconds,
+                           exact_timestamp = list(timestamp_to_interpolate,
+                                                  locations_of_interest,
+                                                  radius),
+                           crs_meters = 3035,
+                           nb_cores = 1,
+                           outfile = tempfile()
+){
+
+  assertthat::assert_that(is.numeric(ais_data$lon))
+  assertthat::assert_that(is.numeric(ais_data$lat))
+  assertthat::assert_that(is.numeric(ais_data$timestamp))
+  assertthat::assert_that("time_travelled" %in% colnames(ais_data) & "distance_travelled" %in% colnames(ais_data) & "speed_kmh" %in% colnames(ais_data),
+                          msg = "Please first run AIStravel() to calculate speed, distance and time travelled.")
+
+
+  ## set up the parameters of interpolation according to the type of interpolation
+  if (type_interpolation == "exact_timestamp") {
+
+    assertthat::assert_that("timestamp_to_interpolate" %in% names(exact_timestamp))
+    assertthat::assert_that(is.numeric(exact_timestamp$timestamp_to_interpolate))
+
+    if (!("locations_of_interest" %in% names(exact_timestamp)) | !("radius" %in% names(exact_timestamp))) {
+      exact_timestamp$locations_of_interest <- data.frame(lon = 0, lat = 0)
+      radius <- Inf
+
+    } else {
+      assertthat::assert_that(is.numeric(exact_timestamp$radius))
+      assertthat::assert_that(ncol(exact_timestamp$locations_of_interest) == 2)
+      assertthat::assert_that(nrow(exact_timestamp$locations_of_interest) == length(exact_timestamp$timestamp_to_interpolate))
+
+      radius <- exact_timestamp$radius
+    }
+
+    data <- data.frame(timestamp = exact_timestamp$timestamp_to_interpolate,
+                       lon = exact_timestamp$locations_of_interest[,1],
+                       lat = exact_timestamp$locations_of_interest[,2])
+
+    timestamp_to_interpolate <- sort(unique(exact_timestamp$timestamp_to_interpolate))
+
+  } else if (type_interpolation == "maximum_gap_seconds") {
+    data <- data.frame(timestamp = c(-Inf, Inf),
+                       lon = c(0, 0),
+                       lat = c(0, 0))
+    radius <- Inf
+    timestamp_to_interpolate <- c(-Inf, Inf)
+  } else {
+    stop("'type_interpolation' must be either 'maximum_gap_seconds' or 'exact_timestamp'")
+  }
+
+  assertthat::assert_that(is.numeric(data$lon))
+  assertthat::assert_that(is.numeric(data$lat))
+  assertthat::assert_that(is.numeric(data$timestamp))
+
+  initial_columns <- colnames(ais_data)
+
+  data <- add_coordinates_meters(data, crs_meters = crs_meters) %>%
+    sf::st_drop_geometry()
+
+  ais_data <- ais_data %>%
+    add_coordinates_meters(., crs_meters = crs_meters) %>%
+    sf::st_drop_geometry() %>%
+    dplyr::filter(X >= (min(data$X, na.rm = TRUE) - radius) & X <= (max(data$X, na.rm = TRUE) + radius) &
+                    Y >= (min(data$Y, na.rm = TRUE) - radius) & Y <= (max(data$Y, na.rm = TRUE) + radius)) %>%
+    dplyr::arrange(mmsi, timestamp)
+
+  if (nrow(ais_data) > 0) {
+
+    ais_data <- if (type_interpolation == "maximum_gap_seconds") {
+      method_interpolation_max_time(ais_data,
+                                    maximum_gap_seconds = maximum_gap_seconds,
+                                    nb_cores = nb_cores,
+                                    outfile = outfile)
+    } else {
+      out <- method_interpolation_exact_time(ais_data,
+                                             data,
+                                             crs_meters,
+                                             radius,
+                                             timestamp_to_interpolate,
+                                             nb_cores,
+                                             outfile)
+    }
+
+    ais_data <- AIStravel(ais_data = ais_data %>%
+                            dplyr::select(-c(time_travelled, distance_travelled, speed_kmh)),
+                          crs_meters = crs_meters) %>%
+      dplyr::mutate(interpolated = ifelse(is.na(interpolated), FALSE, interpolated))
+
+  } else {
+    message("No AIS data remained for interpolation after applying `locations_of_interest` and `radius`.\n")
+  }
+
+  return(ais_data %>%
+           dplyr::select(dplyr::all_of(c(initial_columns,
+                                         colnames(ais_data)[!(colnames(ais_data) %in% initial_columns)]))))
+}

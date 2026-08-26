@@ -1,0 +1,13 @@
+citHeader("To cite AISanalyze, please use:")
+
+bibentry(
+  author = c(person("Rémi", "Pigeault"), person("Andreas", "Ruser"), person("Nadya C.", "Ramirez-Martinez"), person("Steve C. V.", "Geelhoed"), person("Jan", "Haelters"), person("Dominik A.", "Nachtsheim"), person("Tobias", "Schaffeld"), person("Signe", "Sveegaard"), person("Ursula", "Siebert"), person("Anita", "Gilles")),
+  bibtype = "Article",
+  title   = "Maritime traffic alters distribution of the harbour porpoise in the North Sea",
+  year    = "2024",
+  journal = "Marine Pollution Bulletin",
+  volume  = "208",
+  pages   = "116925",
+  textVersion =
+    "Pigeault R., Ruser A., Ramirez-Martinez N.C., Geelhoed S.C.V., Haelters J., Nachtsheim D.A., Schaffeld T., Sveegaard S., Siebert U., Gilles A. (2024). Maritime traffic alters distribution of the harbour porpoise in the North Sea. Marine Pollution Bulletin. 208: 116925."
+)

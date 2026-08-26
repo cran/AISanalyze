@@ -1,0 +1,138 @@
+
+# AISanalyze
+
+<!-- badges: start -->
+
+[![status](https://joss.theoj.org/papers/0cd8c6cdaf483d19cfec7ce93c1e5c4f/status.svg)](https://joss.theoj.org/papers/0cd8c6cdaf483d19cfec7ce93c1e5c4f)
+
+[![R-CMD-check](https://github.com/remip48/AISanalyze/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/remip48/AISanalyze/actions/workflows/R-CMD-check.yaml)
+
+[![Project Status: Active – The project has reached a stable, usable
+state and is being actively
+developed.](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active)
+
+[![DOI](man/figures/zenodo.21474292.svg)](https://doi.org/10.5281/zenodo.21474292)
+
+[![Documentation](https://img.shields.io/badge/Documentation-pkgdown-blue)](https://remip48.github.io/AISanalyze/)
+
+[![License:
+MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/remip48/AISanalyze/blob/master/LICENSE.md)
+
+<!-- badges: end -->
+
+## Documentation
+
+A complete step-by-step workflow is available in the [User
+guide](https://remip48.github.io/AISanalyze/articles/AISanalyze.html).
+
+📖 Full documentation, tutorials and function reference:
+<https://remip48.github.io/AISanalyze/>
+
+## Overview
+
+AISanalyze is an R package providing a fast and reproducible workflow
+for preprocessing Automatic Identification System (AIS) vessel tracking
+data for environmental and ecological research. It streamlines common
+preprocessing tasks through a small set of user-friendly functions,
+including vessel trajectory reconstruction, GPS correction,
+interpolation, and the extraction of vessel positions around target
+locations or time periods.
+
+The package emphasizes computational efficiency and reproducibility,
+allowing large AIS datasets to be prepared for downstream analyses in
+seconds to minutes. Its main functionalities include:
+
+-   estimating vessel travel distance, time, and speed;
+-   correcting GPS errors and delays;
+-   identifying AIS base stations and aircraft;
+-   interpolating vessel positions;
+-   extracting vessel positions around target locations and times;
+-   retrieving vessel characteristics (ship type, length, width,
+    draught, IMO number, and vessel name).
+
+## Installation
+
+``` r
+# install.packages("remotes")
+remotes::install_github("remip48/AISanalyze")
+```
+
+## Main functions
+
+| Function                          | Description                                 |
+|-----------------------------------|---------------------------------------------|
+| `AIStravel()`                     | Estimate travelled distance, time and speed |
+| `AISidentify_stations_aircraft()` | Identify AIS stations and aircraft          |
+| `AIScorrect_speed()`              | Correct GPS errors and delays               |
+| `AISinterpolate()`                | Interpolate vessel positions                |
+| `AISextract()`                    | Extract vessels around target locations     |
+| `AISinfos()`                      | Estimate vessel characteristics             |
+
+## Example
+
+``` r
+data("ais")
+data("point_to_extract")
+
+## define the Unix time (seconds since 1970-01-01)
+ais$timestamp <- as.numeric(lubridate::ymd_hms(ais$datetime))
+point_to_extract$timestamp <- as.numeric(lubridate::ymd_hm(point_to_extract$datetime))
+
+## correct, interpolate and extract vessel positions:
+results <- ais |>
+  AIStravel(nb_cores = 4) |> 
+  AISidentify_stations_aircraft() |> 
+  dplyr::filter(!station & !high_speed) |> 
+  AIScorrect_speed(nb_cores = 4) |> # correct speed
+  AISinterpolate(., 
+                 type_interpolation = "maximum_gap_seconds",
+                 maximum_gap_seconds = 60,
+                 nb_cores = 4) |>
+  AISextract(data = point_to_extract, 
+             search_into_radius_m = 10000,
+             nb_cores = 4)
+
+# The AIS data are now joined to your dataset!
+```
+
+## Performance
+
+Total execution time to complete the example workflow with 100 points to
+extract and 4 CPU cores:
+
+| AIS dataset size | 100,000 points | 1,000,000 points | 2,500,000 points |
+|------------------|----------------|------------------|------------------|
+| Time             | 14 sec         | 68 sec           | 146 sec          |
+
+## Citation
+
+If you use AISanalyze, please cite:
+
+Pigeault R., Ruser A., Ramírez-Martínez N.C., Geelhoed S.C.V., Haelters
+J., Nachtsheim D.A., Schaffeld T., Sveegaard S., Siebert U., Gilles A.
+(2024). Maritime traffic alters distribution of the harbour porpoise in
+the North Sea. *Marine Pollution Bulletin.* 208: 116925. DOI:
+[10.1016/j.marpolbul.2024.116925](https://doi.org/10.1016/j.marpolbul.2024.116925)
+
+``` r
+citation("AISanalyze")
+```
+
+## License
+
+This project is licensed under the MIT License. See the `LICENSE` file
+for details.
+
+## Contributing
+
+Contributions are welcome! Whether you would like to report a bug,
+suggest a new feature, or contribute code or documentation, please read
+our [contributing
+guidelines](https://github.com/remip48/AISanalyze/blob/master/CONTRIBUTING.md)
+guide to get started.
+
+## Support
+
+Please use the GitHub issue tracker to report bugs, request features, or
+ask questions. For other enquiries, you may also contact the package
+author directly.
