@@ -12,8 +12,10 @@
 #' @param data Data frame containing `timestamp`, `lon`, and `lat`.
 #'   `timestamp` must be Unix time (seconds since 1970-01-01), while `lon`
 #'   and `lat` must be numeric.
-#' @param crs_meters CRS (metres) used to calculate distances. Defaults to
-#'   EPSG:3035.
+#' @param crs_meters CRS (metres) used to calculate distances
+#'   in the study area (defaults to EPSG:3035, Europe).
+#'   Tip: use `suggest_crs` function (`crsuggest` package) to find a suitable
+#'   CRS for your study area.
 #' @param return_all_vessel_locations Logical. If `TRUE`, returns all vessel
 #'   positions within the specified time window. Otherwise, returns only the
 #'   closest position in time.
@@ -45,8 +47,7 @@
 #' ais$timestamp <- as.numeric(lubridate::ymd_hms(ais$datetime))
 #'
 #' # calculate the travelled distance, time, speed, and interpolate AIS data:
-#' ais <- ais |>
-#'   AIStravel()
+#' ais <- AIStravel(ais, crs_meters = 3035)
 #'
 #' # Extract all vessel positions within the target time interval and radius:
 #' out <- AISextract(ais_data = ais,
@@ -150,17 +151,12 @@ AISextract <- function(ais_data,
         if (nrow(mmsi_ref) >= 1) {
 
           if (!return_all_vessel_locations) {
-            mmsi_ref_infos <- mmsi_ref %>%
-              dplyr::mutate(idd_ais = 1:dplyr::n())
-
-            mmsi_ref <- mmsi_ref_infos %>%
+            mmsi_ref <- mmsi_ref %>%
               as.data.frame() %>%
               dplyr::group_by(mmsi) %>%
-              dplyr::reframe(position_to_use = which.min(abs(ais_timestamp - dt)),
-                             idd_ais = idd_ais[position_to_use],
-                             ais_X = ais_X[position_to_use],
-                             ais_Y = ais_Y[position_to_use],
-                             ais_timestamp = ais_timestamp[position_to_use])
+              dplyr::slice_min(abs(ais_timestamp - dt)) %>%
+              dplyr::slice_max(ais_timestamp) %>%
+              dplyr::ungroup()
           }
 
           out <- eff_dt %>%
@@ -176,15 +172,8 @@ AISextract <- function(ais_data,
               dplyr::filter(distance_vessel_to_location_m <= search_into_radius_m)
           }
 
-          out <- out %>%
-            dplyr::left_join(eff_dt, by = "idd_effort")
-
-          if (!return_all_vessel_locations) {
-            out <- out %>%
-              dplyr::left_join(mmsi_ref_infos %>%
-                                 dplyr::select(-c(ais_X, ais_Y, mmsi, ais_timestamp)), by = "idd_ais") %>%
-              dplyr::select(-c(idd_ais, position_to_use))
-          }
+          out <- eff_dt %>%
+            dplyr::left_join(out, by = "idd_effort")
 
         } else {
           out <- eff_dt

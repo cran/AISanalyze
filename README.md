@@ -3,7 +3,12 @@
 
 <!-- badges: start -->
 
+[![CRAN
+status](https://www.r-pkg.org/badges/version/AISanalyze)](https://CRAN.R-project.org/package=AISanalyze)
+
 [![status](https://joss.theoj.org/papers/0cd8c6cdaf483d19cfec7ce93c1e5c4f/status.svg)](https://joss.theoj.org/papers/0cd8c6cdaf483d19cfec7ce93c1e5c4f)
+
+[![Documentation](https://img.shields.io/badge/Documentation-pkgdown-blue)](https://remip48.github.io/AISanalyze/)
 
 [![R-CMD-check](https://github.com/remip48/AISanalyze/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/remip48/AISanalyze/actions/workflows/R-CMD-check.yaml)
 
@@ -13,8 +18,6 @@ developed.](https://www.repostatus.org/badges/latest/active.svg)](https://www.re
 
 [![DOI](man/figures/zenodo.21474292.svg)](https://doi.org/10.5281/zenodo.21474292)
 
-[![Documentation](https://img.shields.io/badge/Documentation-pkgdown-blue)](https://remip48.github.io/AISanalyze/)
-
 [![License:
 MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/remip48/AISanalyze/blob/master/LICENSE.md)
 
@@ -22,11 +25,11 @@ MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/re
 
 ## Documentation
 
-A complete step-by-step workflow is available in the [User
+A complete step-by-step workflow is available in the [Articles/User
 guide](https://remip48.github.io/AISanalyze/articles/AISanalyze.html).
 
-📖 Full documentation, tutorials and function reference:
-<https://remip48.github.io/AISanalyze/>
+📖 List of functions, example datasets and their documentation:
+[Reference](https://remip48.github.io/AISanalyze/reference/index.html).
 
 ## Overview
 
@@ -52,9 +55,13 @@ seconds to minutes. Its main functionalities include:
 
 ## Installation
 
+The stable version of `AISanalyze` is available on CRAN and can be
+installed and loaded with:
+
 ``` r
-# install.packages("remotes")
-remotes::install_github("remip48/AISanalyze")
+install.packages("AISanalyze")
+
+library(AISanalyze)
 ```
 
 ## Main functions
@@ -80,17 +87,16 @@ point_to_extract$timestamp <- as.numeric(lubridate::ymd_hm(point_to_extract$date
 
 ## correct, interpolate and extract vessel positions:
 results <- ais |>
-  AIStravel(nb_cores = 4) |> 
-  AISidentify_stations_aircraft() |> 
+  AIStravel(nb_cores = 4, crs = 3035) |> 
+  AISidentify_stations_aircraft(crs = 3035) |> 
   dplyr::filter(!station & !high_speed) |> 
-  AIScorrect_speed(nb_cores = 4) |> # correct speed
-  AISinterpolate(., 
-                 type_interpolation = "maximum_gap_seconds",
+  AIScorrect_speed(nb_cores = 4, crs = 3035) |> # correct speed
+  AISinterpolate(type_interpolation = "maximum_gap_seconds",
                  maximum_gap_seconds = 60,
-                 nb_cores = 4) |>
+                 nb_cores = 4, crs = 3035) |>
   AISextract(data = point_to_extract, 
              search_into_radius_m = 10000,
-             nb_cores = 4)
+             nb_cores = 4, crs = 3035)
 
 # The AIS data are now joined to your dataset!
 ```

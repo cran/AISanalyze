@@ -367,7 +367,11 @@ System (AIS) data, including:</p>
 </div>
 <div id="estimate-travelled-distance-and-speed" class="section level1">
 <h1>Estimate travelled distance and speed</h1>
-<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>ais <span class="ot">&lt;-</span> <span class="fu">AIStravel</span>(<span class="at">ais_data =</span> ais)</span></code></pre></div>
+<p>A CRS with units in metres and suited for the study area must be used
+(e.g. EPSG:3035 for Europe, as used below). Tip: use
+<code>suggest_crs</code> function (<code>crsuggest</code> package) to
+find a suitable CRS for your study area.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>ais <span class="ot">&lt;-</span> <span class="fu">AIStravel</span>(<span class="at">ais_data =</span> ais, <span class="at">crs =</span> <span class="dv">3035</span>)</span></code></pre></div>
 <p>Three variables are added:</p>
 <ul>
 <li><code>distance_travelled</code></li>
@@ -377,7 +381,7 @@ System (AIS) data, including:</p>
 </div>
 <div id="identify-stations-and-aircraft" class="section level1">
 <h1>Identify stations and aircraft</h1>
-<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>ais <span class="ot">&lt;-</span> <span class="fu">AISidentify_stations_aircraft</span>(<span class="at">ais_data =</span> ais)</span></code></pre></div>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>ais <span class="ot">&lt;-</span> <span class="fu">AISidentify_stations_aircraft</span>(<span class="at">ais_data =</span> ais, <span class="at">crs =</span> <span class="dv">3035</span>)</span></code></pre></div>
 <p>Two logical variables are added:</p>
 <ul>
 <li><code>station</code></li>
@@ -386,7 +390,7 @@ System (AIS) data, including:</p>
 </div>
 <div id="correct-gps-errors" class="section level1">
 <h1>Correct GPS errors</h1>
-<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>ais <span class="ot">&lt;-</span> <span class="fu">AIScorrect_speed</span>(<span class="at">ais_data =</span> ais)</span></code></pre></div>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>ais <span class="ot">&lt;-</span> <span class="fu">AIScorrect_speed</span>(<span class="at">ais_data =</span> ais, <span class="at">crs =</span> <span class="dv">3035</span>)</span></code></pre></div>
 <p>This step corrects unrealistic speeds caused by GPS errors or
 transmission delays.</p>
 </div>
@@ -397,8 +401,9 @@ no more than 60 seconds apart.</p>
 <div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>ais_interpolated_60sec <span class="ot">&lt;-</span> <span class="fu">AISinterpolate</span>(</span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">ais_data =</span> ais,</span>
 <span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">type_interpolation =</span> <span class="st">&quot;maximum_time_interval&quot;</span>,</span>
-<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">maximum_gap_seconds =</span> <span class="dv">60</span></span>
-<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">maximum_gap_seconds =</span> <span class="dv">60</span>, </span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">crs =</span> <span class="dv">3035</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div>
 <p>Alternatively, vessel positions can be interpolated at exact
 timestamps. Target locations and a search radius (m) can be specified to
 limit interpolation to a specific area and reduce computation time.</p>
@@ -409,8 +414,9 @@ limit interpolation to a specific area and reduce computation time.</p>
 <span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">timestamp_to_interpolate =</span> point_to_extract<span class="sc">$</span>timestamp,</span>
 <span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">locations_of_interest =</span> point_to_extract[<span class="fu">c</span>(<span class="st">&quot;lon&quot;</span>, <span class="st">&quot;lat&quot;</span>)],</span>
 <span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">radius =</span> <span class="dv">200000</span></span>
-<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>  )</span>
-<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>  ),</span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>  <span class="at">crs =</span> <span class="dv">3035</span></span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div>
 <p>The <code>datetime</code> column in the interpolated datasets can
 then be updated:</p>
 <div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>ais_interpolated_60sec<span class="sc">$</span>datetime <span class="ot">&lt;-</span> lubridate<span class="sc">::</span><span class="fu">as_datetime</span>(ais_interpolated_60sec<span class="sc">$</span>timestamp)</span>
@@ -426,9 +432,10 @@ target locations and timestamps (<code>point_to_extract</code>).</p>
 <span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">data =</span> point_to_extract,</span>
 <span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">return_all_vessel_locations =</span> <span class="cn">TRUE</span>,</span>
 <span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">search_into_radius_m =</span> <span class="dv">50000</span>,</span>
-<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">interval_time_before =</span> <span class="dv">300</span>,</span>
-<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">interval_time_after =</span> <span class="dv">300</span></span>
-<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">interval_time_before =</span> <span class="dv">5</span> <span class="sc">*</span> <span class="dv">60</span>,</span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">interval_time_after =</span> <span class="dv">5</span> <span class="sc">*</span> <span class="dv">60</span>,</span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>  <span class="at">crs =</span> <span class="dv">3035</span></span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div>
 <p>Alternatively, set <code>return_all_vessel_locations = FALSE</code>
 to return only one vessel position per timestamp (the closest in time to
 the target timestamps):</p>
@@ -437,9 +444,10 @@ the target timestamps):</p>
 <span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">data =</span> point_to_extract,</span>
 <span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">return_all_vessel_locations =</span> <span class="cn">FALSE</span>,</span>
 <span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">search_into_radius_m =</span> <span class="dv">50000</span>,</span>
-<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">interval_time_before =</span> <span class="dv">300</span>,</span>
-<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">interval_time_after =</span> <span class="dv">300</span></span>
-<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">interval_time_before =</span> <span class="dv">5</span> <span class="sc">*</span> <span class="dv">60</span>,</span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">interval_time_after =</span> <span class="dv">5</span> <span class="sc">*</span> <span class="dv">60</span>,</span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>  <span class="at">crs =</span> <span class="dv">3035</span></span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div>
 <p>Furthermore, you can extract vessel positions over a square grid
 (instead of a circular radius) by setting
 <code>search_shape = &quot;square&quot;</code> and passing the cell centroids to
@@ -450,9 +458,10 @@ the target timestamps):</p>
 <span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">return_all_vessel_locations =</span> <span class="cn">FALSE</span>, <span class="co"># or TRUE</span></span>
 <span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">search_into_radius_m =</span> <span class="dv">50000</span>,</span>
 <span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">search_shape =</span> <span class="st">&quot;square&quot;</span>,</span>
-<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">interval_time_before =</span> <span class="dv">300</span>,</span>
-<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>  <span class="at">interval_time_after =</span> <span class="dv">300</span></span>
-<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">interval_time_before =</span> <span class="dv">5</span> <span class="sc">*</span> <span class="dv">60</span>,</span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>  <span class="at">interval_time_after =</span> <span class="dv">5</span> <span class="sc">*</span> <span class="dv">60</span>,</span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>  <span class="at">crs =</span> <span class="dv">3035</span></span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div>
 </div>
 <div id="estimate-vessel-characteristics" class="section level1">
 <h1>Estimate vessel characteristics</h1>

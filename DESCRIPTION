@@ -1,6 +1,6 @@
 Package: AISanalyze
 Title: Processing and Analyzing AIS Vessel Tracking Data
-Version: 3.1.2
+Version: 3.1.3
 Authors@R: c(person("Rémi", "Pigeault", , "remi.pigeault@tiho-hannover.de", role = c("aut", "cre"), comment = c(ORCID = "0000-0003-2714-5122")))
 Description: Processes Automatic Identification
     System (AIS) vessel tracking data, including travel estimation,
@@ -24,9 +24,9 @@ Config/roxygen2/version: 8.0.0
 VignetteBuilder: knitr
 RoxygenNote: 7.3.1
 NeedsCompilation: no
-Packaged: 2026-08-20 21:25:59 UTC; 234028
+Packaged: 2026-09-29 14:47:45 UTC; 234028
 Author: Rémi Pigeault [aut, cre] (ORCID:
     <https://orcid.org/0000-0003-2714-5122>)
 Maintainer: Rémi Pigeault <remi.pigeault@tiho-hannover.de>
 Repository: CRAN
-Date/Publication: 2026-08-26 19:40:01 UTC
+Date/Publication: 2026-09-30 18:00:02 UTC

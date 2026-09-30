@@ -17,19 +17,20 @@ ais$timestamp <- as.numeric(lubridate::ymd_hms(ais$datetime))
 point_to_extract$timestamp <- as.numeric(lubridate::ymd_hm(point_to_extract$datetime))
 
 ## -----------------------------------------------------------------------------
-ais <- AIStravel(ais_data = ais)
+ais <- AIStravel(ais_data = ais, crs = 3035)
 
 ## -----------------------------------------------------------------------------
-ais <- AISidentify_stations_aircraft(ais_data = ais)
+ais <- AISidentify_stations_aircraft(ais_data = ais, crs = 3035)
 
 ## -----------------------------------------------------------------------------
-ais <- AIScorrect_speed(ais_data = ais)
+ais <- AIScorrect_speed(ais_data = ais, crs = 3035)
 
 ## ----eval=FALSE---------------------------------------------------------------
 # ais_interpolated_60sec <- AISinterpolate(
 #   ais_data = ais,
 #   type_interpolation = "maximum_time_interval",
-#   maximum_gap_seconds = 60
+#   maximum_gap_seconds = 60,
+#   crs = 3035
 # )
 
 ## ----eval=FALSE---------------------------------------------------------------
@@ -40,7 +41,8 @@ ais <- AIScorrect_speed(ais_data = ais)
 #     timestamp_to_interpolate = point_to_extract$timestamp,
 #     locations_of_interest = point_to_extract[c("lon", "lat")],
 #     radius = 200000
-#   )
+#   ),
+#   crs = 3035
 # )
 
 ## ----eval=FALSE---------------------------------------------------------------
@@ -55,8 +57,9 @@ ais <- AIScorrect_speed(ais_data = ais)
 #   data = point_to_extract,
 #   return_all_vessel_locations = TRUE,
 #   search_into_radius_m = 50000,
-#   interval_time_before = 300,
-#   interval_time_after = 300
+#   interval_time_before = 5 * 60,
+#   interval_time_after = 5 * 60,
+#   crs = 3035
 # )
 
 ## ----eval=FALSE---------------------------------------------------------------
@@ -65,8 +68,9 @@ ais <- AIScorrect_speed(ais_data = ais)
 #   data = point_to_extract,
 #   return_all_vessel_locations = FALSE,
 #   search_into_radius_m = 50000,
-#   interval_time_before = 300,
-#   interval_time_after = 300
+#   interval_time_before = 5 * 60,
+#   interval_time_after = 5 * 60,
+#   crs = 3035
 # )
 
 ## ----eval=FALSE---------------------------------------------------------------
@@ -76,8 +80,9 @@ ais <- AIScorrect_speed(ais_data = ais)
 #   return_all_vessel_locations = FALSE, # or TRUE
 #   search_into_radius_m = 50000,
 #   search_shape = "square",
-#   interval_time_before = 300,
-#   interval_time_after = 300
+#   interval_time_before = 5 * 60,
+#   interval_time_after = 5 * 60,
+#   crs = 3035
 # )
 
 ## ----eval=FALSE---------------------------------------------------------------
